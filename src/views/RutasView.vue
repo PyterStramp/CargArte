@@ -48,6 +48,10 @@
           <button type="submit" class="add-btn">Añadir Punto</button>
         </form>
       </div>
+
+      <button v-if="markers.length > 1" @click="optimizeRoute" class="optimize-btn">
+        Optimizar Ruta
+      </button>
     </div>
   </div>
 </template>
@@ -56,6 +60,7 @@
 import MapView from '@/components/MapView.vue'
 import { validateCoordinates } from '@/utils/geoValidation'
 import bogotaBoundariesData from '@/assets/bogota-boundaries.json'
+import { findOptimalRoute } from '@/utils/routeOptimization'
 
 export default {
   name: 'RutasView',
@@ -71,7 +76,8 @@ export default {
         lng: '',
         packages: 1
       },
-      validationError: null
+      validationError: null,
+      optimizedRoute: null
     }
   },
   methods: {
@@ -110,7 +116,19 @@ export default {
           this.newMarker.packages = 1
         }
       }
+    },
+    optimizeRoute() {
+      const warehouse = {
+        position: this.warehousePosition
+      };
+
+      const route = findOptimalRoute(warehouse, this.markers);
+      this.optimizedRoute = route;
+
+      // Emitir el evento para dibujar la ruta en el mapa
+      this.$refs.mapView.drawRoute([warehouse, ...route]);
     }
+
   }
 }
 </script>
@@ -287,5 +305,22 @@ export default {
 
 .packages-input {
   width: 100px;
+}
+
+/*optimizacion */
+
+.optimize-btn {
+  background-color: #28a72a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.optimize-btn:hover {
+  background-color: #588821;
 }
 </style>

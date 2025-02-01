@@ -40,6 +40,13 @@
         </l-popup>
       </l-marker>
 
+      <!-- Líneas de la ruta -->
+      <l-polyline v-if="routeLines" :lat-lngs="routeLines" :options="{
+        color: '#2872a7',
+        weight: 3,
+        opacity: 0.8
+      }" />
+
       <!-- Límites de Bogotá -->
       <l-geo-json :geojson="boundaries" :options="geoJsonOptions" />
     </l-map>
@@ -48,7 +55,7 @@
 
 <script>
 
-import { LGeoJson, LMap, LTileLayer, LMarker, LPopup, LIcon } from '@vue-leaflet/vue-leaflet'
+import { LGeoJson, LMap, LTileLayer, LMarker, LPopup, LIcon, LPolyline } from '@vue-leaflet/vue-leaflet'
 import bogotaBoundariesData from '@/assets/bogota-boundaries.json'
 
 export default {
@@ -59,7 +66,8 @@ export default {
     LMarker,
     LPopup,
     LIcon,
-    LGeoJson
+    LGeoJson,
+    LPolyline
   },
   props: {
     markers: {
@@ -69,7 +77,7 @@ export default {
   },
   data() {
     return {
-      zoom: 16,
+      zoom: 14,
       center: [4.757786586246297, -74.04488664305592],
       warehousePosition: [4.757786586246297, -74.04488664305592],
       warehouseIcon: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -85,6 +93,7 @@ export default {
         }
       },
       tempMarker: null,
+      routeLines: null,
     }
   },
   methods: {
@@ -106,6 +115,9 @@ export default {
     },
     cancelTempMarker() {
       this.tempMarker = null
+    },
+    drawRoute(routePoints) {
+      this.routeLines = routePoints.map(point => point.position);
     }
   }
 }
