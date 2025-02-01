@@ -5,3 +5,7 @@ En CargArte, nos tomamos el transporte de mercancías tan en serio como un payas
 ¿Necesitas mover un elefante de porcelana? ¡No hay problema! ¿Un kilo de plumas de rana calva? ¡Lo hacemos con una sonrisa! 😄 Nuestros conductores son verdaderos artistas de la carretera, capaces de maniobrar con maestría y estilo, incluso en los atascos más caóticos. 🎭
 
 En CargArte, cada entrega es una exposición de talento y humor, porque creemos que la vida es demasiado corta para ser seria todo el tiempo. ¡Confía en nosotros para llevar tus mercancías con un toque de arte y muchas risas en el camino! 🎉
+
+# Desarrollo
+
+El proyecto es desarrollado en Vue
