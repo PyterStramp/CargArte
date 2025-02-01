@@ -19,8 +19,11 @@
               {{ marker.position[0].toFixed(4) }},
               {{ marker.position[1].toFixed(4) }}
             </div>
+            <div class="packages-info">
+              Paquetes: {{ marker.packages }}
+            </div>
             <button @click="removeMarker(index)" class="delete-btn">
-              ×
+              X
             </button>
           </li>
         </ul>
@@ -36,6 +39,8 @@
           <div class="input-group">
             <input type="number" v-model="newMarker.lat" step="any" placeholder="Latitud" required class="form-input">
             <input type="number" v-model="newMarker.lng" step="any" placeholder="Longitud" required class="form-input">
+            <input type="number" v-model="newMarker.packages" min="1" placeholder="# Paquetes" required
+              class="form-input packages-input">
           </div>
           <div v-if="validationError" class="error-message">
             {{ validationError }}
@@ -43,8 +48,6 @@
           <button type="submit" class="add-btn">Añadir Punto</button>
         </form>
       </div>
-
-
     </div>
   </div>
 </template>
@@ -65,7 +68,8 @@ export default {
       warehousePosition: [4.757786586246297, -74.04488664305592],
       newMarker: {
         lat: '',
-        lng: ''
+        lng: '',
+        packages: 1
       },
       validationError: null
     }
@@ -91,15 +95,20 @@ export default {
     addMarkerByCoordinates() {
       const lat = parseFloat(this.newMarker.lat)
       const lng = parseFloat(this.newMarker.lng)
+      const packages = parseInt(this.newMarker.packages)
 
-      if (!isNaN(lat) && !isNaN(lng)) {
-        this.markers.push({
-          position: [lat, lng]
-        })
+      if (!isNaN(lat) && !isNaN(lng) && packages >= 1) {
+        if (this.validateLocation(lat, lng)) {
+          this.markers.push({
+            position: [lat, lng],
+            packages: packages
+          })
 
-        // Limpia el formulario
-        this.newMarker.lat = ''
-        this.newMarker.lng = ''
+          // Limpiar el formulario
+          this.newMarker.lat = ''
+          this.newMarker.lng = ''
+          this.newMarker.packages = 1
+        }
       }
     }
   }
@@ -266,5 +275,17 @@ export default {
   background-color: #f8d7da;
   border-radius: 4px;
   border: 1px solid #f5c6cb;
+}
+
+/*Paquetes */
+
+.packages-info {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 2px;
+}
+
+.packages-input {
+  width: 100px;
 }
 </style>
