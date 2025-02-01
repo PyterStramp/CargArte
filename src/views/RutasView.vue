@@ -1,3 +1,4 @@
+<!--RutasView-->
 <template>
   <div class="rutas-container">
     <div class="map-section">
@@ -27,12 +28,31 @@
       <p v-else>
         Haga clic en el mapa para añadir puntos de entrega
       </p>
+
+      <!-- Formulario de coordenadas -->
+      <div class="coordinates-form">
+        <h3>Ingresa por coordenadas</h3>
+        <form @submit.prevent="addMarkerByCoordinates" class="form-group">
+          <div class="input-group">
+            <input type="number" v-model="newMarker.lat" step="any" placeholder="Latitud" required class="form-input">
+            <input type="number" v-model="newMarker.lng" step="any" placeholder="Longitud" required class="form-input">
+          </div>
+          <div v-if="validationError" class="error-message">
+            {{ validationError }}
+          </div>
+          <button type="submit" class="add-btn">Añadir Punto</button>
+        </form>
+      </div>
+
+
     </div>
   </div>
 </template>
 
 <script>
 import MapView from '@/components/MapView.vue'
+import { validateCoordinates } from '@/utils/geoValidation'
+import bogotaBoundariesData from '@/assets/bogota-boundaries.json'
 
 export default {
   name: 'RutasView',
@@ -42,15 +62,45 @@ export default {
   data() {
     return {
       markers: [],
-      warehousePosition: [4.757786586246297, -74.04488664305592]
+      warehousePosition: [4.757786586246297, -74.04488664305592],
+      newMarker: {
+        lat: '',
+        lng: ''
+      },
+      validationError: null
     }
   },
   methods: {
+    validateLocation(lat, lng) {
+      if (!validateCoordinates(lat, lng, bogotaBoundariesData)) {
+        this.validationError = "¡Oops! 🚫 Estas coordenadas están fuera de Bogotá. CargArte sólo se encarga de entregas dentro de Bogotá; ya expanderá su visión a realizar entregas a todo el país en un futuro incierto"
+        return false;
+      }
+      this.validationError = null;
+      return true;
+    },
     handleMarkerAdded(marker) {
-      this.markers.push(marker)
+      const [lat, lng] = marker.position;
+      if (this.validateLocation(lat, lng)) {
+        this.markers.push(marker);
+      }
     },
     removeMarker(index) {
       this.markers.splice(index, 1)
+    },
+    addMarkerByCoordinates() {
+      const lat = parseFloat(this.newMarker.lat)
+      const lng = parseFloat(this.newMarker.lng)
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        this.markers.push({
+          position: [lat, lng]
+        })
+
+        // Limpia el formulario
+        this.newMarker.lat = ''
+        this.newMarker.lng = ''
+      }
     }
   }
 }
@@ -78,6 +128,32 @@ export default {
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /*Scroll */
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  /* Opcional: para hacer el scroll más suave */
+  scroll-behavior: smooth;
+  /* Opcional: para ocultar el scroll en algunos navegadores */
+  scrollbar-width: thin;
+}
+
+/* (Webkit browsers) */
+.controls-section::-webkit-scrollbar {
+  width: 8px;
+}
+
+.controls-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.controls-section::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.controls-section::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .marker-list {
@@ -132,5 +208,63 @@ export default {
 
 .delete-btn:hover {
   background-color: #c82333;
+}
+
+/*formulario */
+.coordinates-form {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.form-input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.add-btn {
+  background-color: #2872a7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-btn:hover {
+  background-color: #213788;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+}
+
+/*error message */
+
+.error-message {
+  color: #dc3545;
+  font-size: 14px;
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #f8d7da;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
 }
 </style>
