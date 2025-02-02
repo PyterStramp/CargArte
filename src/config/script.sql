@@ -243,6 +243,117 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+--editar un vehículo
+
+CREATE OR REPLACE FUNCTION update_vehicle(
+    p_plate VARCHAR,
+    p_model_id INTEGER,
+    p_color VARCHAR,
+    p_cargo_capacity NUMERIC
+)
+RETURNS TABLE (
+    success BOOLEAN,
+    message VARCHAR,
+    plate VARCHAR,
+    brand_name VARCHAR,
+    model_name VARCHAR,
+    color VARCHAR,
+    cargo_capacity NUMERIC
+) AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM vehicles v WHERE v.plate = p_plate) THEN
+        RETURN QUERY SELECT 
+            false,
+            'El vehículo no existe'::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::NUMERIC;
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM vehicle_models WHERE id = p_model_id) THEN
+        RETURN QUERY SELECT 
+            false,
+            'El modelo seleccionado no existe'::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::VARCHAR,
+            NULL::NUMERIC;
+        RETURN;
+    END IF;
+
+    -- Actualizar el vehículo
+    UPDATE vehicles v
+    SET 
+        model_id = p_model_id,
+        color = p_color,
+        cargo_capacity = p_cargo_capacity
+    WHERE v.plate ILIKE p_plate;
+
+    -- Retornar el vehículo actualizado con sus datos completos
+    RETURN QUERY
+    SELECT 
+        true,
+        'Vehículo actualizado exitosamente'::VARCHAR,
+        v.plate,
+        b.name,
+        m.name,
+        v.color,
+        v.cargo_capacity
+    FROM vehicles v
+    JOIN vehicle_models m ON v.model_id = m.id
+    JOIN vehicle_brands b ON m.brand_id = b.id
+    WHERE v.plate = p_plate;
+    
+END;
+$$ LANGUAGE plpgsql;
+
+--ELIMINAR un vehículo
+
+CREATE OR REPLACE FUNCTION delete_vehicle(p_plate VARCHAR)
+RETURNS TABLE (
+    success BOOLEAN,
+    message VARCHAR,
+    plate VARCHAR
+) AS $$
+BEGIN
+    -- Verificar si el vehículo existe
+    IF NOT EXISTS (SELECT 1 FROM vehicles v WHERE v.plate = p_plate) THEN
+        RETURN QUERY SELECT 
+            false,
+            'El vehículo no existe'::VARCHAR,
+            NULL::VARCHAR;
+        RETURN;
+    END IF;
+
+    -- Verificar si el vehículo está en una ruta activa
+    IF EXISTS (
+        SELECT 1 FROM routes 
+        WHERE vehicle_id = (SELECT id FROM vehicles v WHERE v.plate = p_plate)
+        AND status IN ('Pending', 'In Progress')
+    ) THEN
+        RETURN QUERY SELECT 
+            false,
+            'No se puede eliminar el vehículo porque tiene rutas activas'::VARCHAR,
+            NULL::VARCHAR;
+        RETURN;
+    END IF;
+
+    -- Eliminar el vehículo
+    DELETE FROM vehicles v WHERE v.plate = p_plate;
+
+    RETURN QUERY
+    SELECT 
+        true,
+        'Vehículo eliminado exitosamente'::VARCHAR,
+        p_plate;
+END;
+$$ LANGUAGE plpgsql;
+
+--MARCAS
 --Procedimiento para tener marcas
 CREATE OR REPLACE FUNCTION get_brands()
 RETURNS TABLE (
@@ -385,9 +496,9 @@ SELECT * FROM get_vehicle_by_plate('ABC123');
 SELECT * FROM create_vehicle('OBC123', 28, 'White', 55);
 
 --actualizar
-
+SELECT * FROM update_vehicle('OBC123', 29, 'Black', 45);
 --eliminar
-
+SELECT * FROM delete_vehicle('OBC123');
 --tener marcas
 SELECT * FROM get_brands();
 
