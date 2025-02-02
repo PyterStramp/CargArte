@@ -55,5 +55,31 @@ export const useVehicleStore = defineStore('vehicle', {
         throw error
       }
     },
+    async updateVehicle(vehicleData) {
+      try {
+        const response = await axios.put(`${API_BASE_URL}/api/vehicles/${vehicleData.plate}`, {
+          modelId: vehicleData.modelId,
+          color: vehicleData.color,
+          cargoCapacity: vehicleData.cargoCapacity,
+        })
+        if (response.data.success) {
+          await this.fetchVehicles()
+        }
+        return response.data
+      } catch (error) {
+        throw error
+      }
+    },
+    async deleteVehicle(plate) {
+      try {
+        const response = await axios.delete(`${API_BASE_URL}/api/vehicles/${plate}`)
+        if (response.data.success) {
+          this.vehicles = this.vehicles.filter((v) => v.plate !== plate)
+        }
+        return response.data
+      } catch (error) {
+        throw error
+      }
+    },
   },
 })

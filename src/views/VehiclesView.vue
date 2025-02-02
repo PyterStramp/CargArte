@@ -37,8 +37,8 @@
             </td>
             <td>{{ vehicle.cargo_capacity }}</td>
             <td class="actions-cell">
-              <button class="btn-edit">Editar</button>
-              <button class="btn-delete">Eliminar</button>
+              <button @click="handleEdit(vehicle)" class="btn-edit">Editar</button>
+              <button @click="handleDelete(vehicle.plate)" class="btn-delete">Eliminar</button>
             </td>
           </tr>
         </tbody>
@@ -49,6 +49,12 @@
     <!-- Botón para agregar nuevo vehículo -->
     <button @click="showAddForm = true" class="btn add">Agregar Vehículo</button>
     <AddVehicleForm :is-open="showAddForm" @close="showAddForm = false" />
+    <!-- Modal de Editar -->
+    <EditVehicleForm :is-open="showEditForm" :vehicle="selectedVehicle" @close="closeEditForm" />
+    <!-- Modal de confirmación para eliminar -->
+    <ConfirmDialog :is-open="showDeleteConfirm" title="Eliminar Vehículo"
+      :message="`¿Está seguro que desea eliminar el vehículo con placa ${vehicleToDelete}?`" @confirm="confirmDelete"
+      @cancel="cancelDelete" />
   </div>
 </template>
 
@@ -56,9 +62,15 @@
 import { ref, onMounted } from 'vue'
 import { useVehicleStore } from '@/stores/vehicleStore'
 import AddVehicleForm from '@/components/AddVehicleForm.vue'
+import EditVehicleForm from '@/components/EditVehicleForm.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const vehicleStore = useVehicleStore()
 const showAddForm = ref(false)
+const showEditForm = ref(false)
+const selectedVehicle = ref(null)
+const showDeleteConfirm = ref(false)
+const vehicleToDelete = ref('')
 
 onMounted(async () => {
   await vehicleStore.fetchVehicles()
@@ -77,6 +89,36 @@ const getColorStyle = (color) => {
     backgroundColor: colorMap[color] || color,
     border: color.toLowerCase() === 'white' ? '1px solid #ddd' : 'none'
   }
+}
+
+const handleEdit = (vehicle) => {
+  selectedVehicle.value = vehicle
+  showEditForm.value = true
+}
+
+const closeEditForm = () => {
+  showEditForm.value = false
+  selectedVehicle.value = null
+}
+
+const handleDelete = (plate) => {
+  vehicleToDelete.value = plate
+  showDeleteConfirm.value = true
+}
+
+const confirmDelete = async () => {
+  try {
+    await vehicleStore.deleteVehicle(vehicleToDelete.value)
+    showDeleteConfirm.value = false
+    vehicleToDelete.value = ''
+  } catch (error) {
+    console.error('Error al eliminar:', error)
+  }
+}
+
+const cancelDelete = () => {
+  showDeleteConfirm.value = false
+  vehicleToDelete.value = ''
 }
 </script>
 
