@@ -137,7 +137,6 @@ export default {
           { position: this.warehousePosition },
           this.markers
         );
-
         // Dibujar ruta en el mapa usando Mapbox
         const routeData = await this.$refs.mapView.drawOptimizedRoute(optimizedRoute);
         this.routeInfo = {

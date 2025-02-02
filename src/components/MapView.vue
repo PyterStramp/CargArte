@@ -41,8 +41,11 @@
       </l-marker>
 
       <!-- Rutas con diferentes colores -->
-      <l-geo-json v-for="(segment, index) in routeSegments" :key="index" :geojson="segment.geometry"
-        :options="segment.options" />
+      <l-geo-json v-for="(segment, index) in routeSegments" :key="`segment-${index}`" :geojson="{
+        type: 'Feature',
+        geometry: segment.geometry,
+        properties: {}
+      }" :options-style="segment.options.style" />
 
       <!-- Límites de Bogotá -->
       <l-geo-json :geojson="boundaries" :options="geoJsonOptions" />
@@ -99,8 +102,19 @@ export default {
         '#dc3545',  // rojo
         '#ffc107',  // amarillo
         '#6610f2',  // morado
-        '#fd7e14'   // naranja
+        '#fd7e14',  // naranja
+        '#20c997',  // verde claro
+        '#6f42c1',  // púrpura
+        '#e83e8c',  // rosado
+        '#fdc500',  // amarillo dorado
+        '#343a40',  // gris oscuro
+        '#17a2b8',  // azul claro
+        '#ff851b',  // naranja oscuro
+        '#2f8fd1',  // azul cielo
+        '#3ddc84',  // verde neón
+        '#ba12a2'   // fucsia
       ],
+
     }
   },
   methods: {
@@ -128,45 +142,33 @@ export default {
     },
     async drawOptimizedRoute(points) {
       try {
-        const allPoints = [{ position: this.warehousePosition }, ...points];
-        const segments = [];
-        let totalDuration = 0;
-        let totalDistance = 0;
+        const allStops = [
+          [this.warehousePosition[1], this.warehousePosition[0]],
+          ...points.map(p => [p.position[1], p.position[0]])
+        ];
 
-        // Crear rutas entre puntos principales
-        for (let i = 0; i < allPoints.length - 1; i++) {
-          const routeData = await getRouteDirections([allPoints[i], allPoints[i + 1]]);
-          totalDuration += routeData.duration;
-          totalDistance += parseFloat(routeData.distance);
+        const routeData = await getRouteDirections(allStops);
 
-          // Creamos un Feature con toda la ruta entre dos puntos principales
-          segments.push({
-            geometry: {
-              type: 'Feature',
-              properties: {
-                routeIndex: i // Para identificar el segmento principal
-              },
-              geometry: routeData.geometry
-            },
-            options: {
-              style: () => ({
-                color: this.getRouteColor(i),
-                weight: 4,
-                opacity: 0.8,
-                lineJoin: 'round',
-                lineCap: 'round'
-              })
+        this.routeSegments = routeData.legs.map((leg, index) => ({
+          type: 'Feature',
+          geometry: leg.geometry,
+          properties: {},
+          options: {
+            style: {
+              color: this.getRouteColor(index),
+              weight: 5,
+              opacity: 0.7
             }
-          });
-        }
-        this.routeSegments = segments;
+          }
+        }));
 
         return {
-          duration: Math.round(totalDuration),
-          distance: totalDistance.toFixed(2)
+          duration: Math.round(routeData.duration / 60),
+          distance: (routeData.distance / 1000).toFixed(2)
         };
       } catch (error) {
-        console.error('Error al dibujar la ruta:', error);
+        console.error('Route drawing failed:', error);
+        return { duration: 0, distance: 0 };
       }
     }
   }

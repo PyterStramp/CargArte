@@ -1,23 +1,74 @@
 import { MAPBOX_ACCESS_TOKEN } from '@/config/mapbox'
 
+// Helper to merge step geometries into continuous leg geometry
+function processLegGeometry(leg) {
+  if (!leg.steps || !Array.isArray(leg.steps)) {
+    console.error('No steps found in leg:', leg)
+    return {
+      type: 'LineString',
+      coordinates: [],
+    }
+  }
+
+  const coordinates = leg.steps.reduce((acc, step) => {
+    if (step.geometry && step.geometry.coordinates) {
+      // Para el primer paso, tomamos todas las coordenadas
+      // Para los demás, omitimos la primera para evitar duplicados
+      const coords =
+        acc.length === 0 ? step.geometry.coordinates : step.geometry.coordinates.slice(1)
+      return [...acc, ...coords]
+    }
+    return acc
+  }, [])
+
+  return {
+    type: 'LineString',
+    coordinates,
+  }
+}
+
 export async function getRouteDirections(points) {
   // Formatear los puntos para la API de Mapbox
-  const coordinates = points.map((point) => `${point.position[1]},${point.position[0]}`).join(';')
-  if (!MAPBOX_ACCESS_TOKEN) {
-    throw new Error('No hay token')
-  }
-  const response = await fetch(
-    `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&access_token=${MAPBOX_ACCESS_TOKEN}`,
-  )
+  const coordinates = points.map((point) => `${point[0]},${point[1]}`).join(';')
 
-  if (!response.ok) {
-    throw new Error('Error al obtener la ruta')
-  }
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?` +
+        new URLSearchParams({
+          geometries: 'geojson',
+          steps: 'true',
+          overview: 'full',
+          access_token: MAPBOX_ACCESS_TOKEN,
+        }),
+    )
 
-  const data = await response.json()
-  return {
-    geometry: data.routes[0].geometry,
-    duration: Math.round(data.routes[0].duration / 60), // en minutos
-    distance: (data.routes[0].distance / 1000).toFixed(2), // en kilómetros
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.routes || !data.routes[0] || !data.routes[0].legs) {
+      throw new Error('Invalid response format from Mapbox')
+    }
+
+    const route = data.routes[0]
+
+    // Procesar cada segmento entre puntos
+    const legs = route.legs.map((leg, index) => ({
+      geometry: processLegGeometry(leg),
+      distance: leg.distance,
+      duration: leg.duration,
+      index: index, // útil para colorear después
+    }))
+
+    return {
+      legs,
+      distance: route.distance,
+      duration: route.duration,
+    }
+  } catch (error) {
+    console.error('Route calculation failed:', error)
+    throw error
   }
 }
