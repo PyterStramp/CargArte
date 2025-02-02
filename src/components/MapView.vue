@@ -55,6 +55,17 @@
 
 <script>
 
+/*
+// Alternativa 1: CartoDB
+url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+
+// Alternativa 2: Stadia Maps
+url="https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png"
+
+// Alternativa 3: Esri
+url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+*/
+
 import { LGeoJson, LMap, LTileLayer, LMarker, LPopup, LIcon } from '@vue-leaflet/vue-leaflet'
 import bogotaBoundariesData from '@/assets/bogota-boundaries.json'
 import { getRouteDirections } from '@/services/routeService';

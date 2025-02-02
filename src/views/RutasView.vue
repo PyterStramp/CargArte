@@ -36,16 +36,26 @@
       <div class="coordinates-form">
         <h3>Ingresa por coordenadas</h3>
         <form @submit.prevent="addMarkerByCoordinates" class="form-group">
-          <div class="input-group">
-            <input type="number" v-model="newMarker.lat" step="any" placeholder="Latitud" required class="form-input">
-            <input type="number" v-model="newMarker.lng" step="any" placeholder="Longitud" required class="form-input">
-            <input type="number" v-model="newMarker.packages" min="1" placeholder="# Paquetes" required
-              class="form-input packages-input">
+          <div class="input-container">
+            <div class="coordinate-inputs">
+              <div class="input-wrapper">
+                <label for="latitude">Latitud</label>
+                <input id="latitude" type="number" v-model="newMarker.lat" step="any" required class="form-input">
+              </div>
+              <div class="input-wrapper">
+                <label for="longitude">Longitud</label>
+                <input id="longitude" type="number" v-model="newMarker.lng" step="any" required class="form-input">
+              </div>
+              <div class="input-wrapper package-input">
+                <label for="packages">Paquetes</label>
+                <input id="packages" type="number" v-model="newMarker.packages" min="1" required class="form-input">
+              </div>
+            </div>
+            <button type="submit" class="add-btn">Añadir Punto</button>
           </div>
           <div v-if="validationError" class="error-message">
             {{ validationError }}
           </div>
-          <button type="submit" class="add-btn">Añadir Punto</button>
         </form>
       </div>
 
@@ -96,7 +106,7 @@ export default {
   methods: {
     validateLocation(lat, lng) {
       if (!validateCoordinates(lat, lng, bogotaBoundariesData)) {
-        this.validationError = "¡Oops! 🚫 Estas coordenadas están fuera de Bogotá. CargArte sólo se encarga de entregas dentro de Bogotá; ya expanderá su visión a realizar entregas a todo el país en un futuro incierto"
+        this.validationError = "¡Ah, parece que tus coordenadas están más perdidas que un Travesti en un ginecólogo! 🗺️😅\n\n CargArte tiene sus fronteras bien trazadas dentro de Bogotá. ¡Pasear por fuera de la ciudad tendrá que esperar un poco más! 🌆🚫\n\n ¿Algún otro moridero de Bogotá en mente para tu pedido? 📍"
         return false;
       }
       this.validationError = null;
@@ -275,32 +285,86 @@ export default {
   gap: 10px;
 }
 
-.form-input {
+.form-input:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coordinate-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.input-wrapper {
   flex: 1;
+  min-width: 140px;
+  /* Evita que los inputs se hagan demasiado pequeños */
+}
+
+.package-input {
+  flex: 0 1 100px;
+  /* El input de paquetes puede ser más pequeño */
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.form-input {
+  width: 93%;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  background-color: white;
 }
 
 .add-btn {
+  width: 100%;
   background-color: #2872a7;
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 8px 16px;
+  padding: 10px;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.2s;
 }
 
 .add-btn:hover {
   background-color: #213788;
 }
 
-.form-input:focus {
-  outline: none;
-  border-color: #80bdff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+/* Media queries para responsividad */
+@media (max-width: 768px) {
+  .coordinate-inputs {
+    flex-direction: column;
+  }
+
+  .input-wrapper {
+    width: 100%;
+  }
+
+  .package-input {
+    width: 100%;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .input-wrapper {
+    min-width: 120px;
+  }
 }
 
 /*error message */
