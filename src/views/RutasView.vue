@@ -52,6 +52,18 @@
       <button v-if="markers.length > 1" @click="optimizeRoute" class="optimize-btn">
         Optimizar Ruta
       </button>
+
+      <!-- Información de la ruta -->
+      <div v-if="routeInfo" class="route-info">
+        <div class="info-item">
+          <span class="info-label">Tiempo estimado:</span>
+          <span class="info-value">{{ routeInfo.duration }} minutos</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Distancia total:</span>
+          <span class="info-value">{{ routeInfo.distance }} km</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -77,7 +89,8 @@ export default {
         packages: 1
       },
       validationError: null,
-      optimizedRoute: null
+      optimizedRoute: null,
+      routeInfo: null
     }
   },
   methods: {
@@ -117,16 +130,24 @@ export default {
         }
       }
     },
-    optimizeRoute() {
-      const warehouse = {
-        position: this.warehousePosition
-      };
+    async optimizeRoute() {
+      try {
+        // Obtener ruta optimizada
+        const optimizedRoute = findOptimalRoute(
+          { position: this.warehousePosition },
+          this.markers
+        );
 
-      const route = findOptimalRoute(warehouse, this.markers);
-      this.optimizedRoute = route;
+        // Dibujar ruta en el mapa usando Mapbox
+        const routeData = await this.$refs.mapView.drawOptimizedRoute(optimizedRoute);
+        this.routeInfo = {
+          duration: routeData.duration,
+          distance: routeData.distance
+        };
+      } catch (error) {
+        console.error('Error al optimizar ruta:', error);
+      }
 
-      // Emitir el evento para dibujar la ruta en el mapa
-      this.$refs.mapView.drawRoute([warehouse, ...route]);
     }
 
   }
@@ -322,5 +343,29 @@ export default {
 
 .optimize-btn:hover {
   background-color: #588821;
+}
+
+/*mapbox */
+
+.route-info {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.info-item {
+  margin-bottom: 8px;
+}
+
+.info-label {
+  font-weight: bold;
+  color: #495057;
+}
+
+.info-value {
+  margin-left: 8px;
+  color: #2872a7;
 }
 </style>

@@ -1,9 +1,9 @@
 <!--MapView-->
 <template>
   <div class="map-container">
-    <l-map ref="map" v-model:zoom="zoom" :center="center" :use-global-leaflet="true" @click="handleMapClick">
-      <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" layer-type="base"
-        name="OpenStreetMap"></l-tile-layer>
+    <l-map ref="map" v-model:zoom="zoom" :center="center" :use-global-leaflet="false" @click="handleMapClick">
+      <l-tile-layer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png" layer-type="base"
+        name="CartoDB"></l-tile-layer>
 
       <!-- Marcador de la bodega -->
       <l-marker :lat-lng="warehousePosition">
@@ -40,12 +40,9 @@
         </l-popup>
       </l-marker>
 
-      <!-- Líneas de la ruta -->
-      <l-polyline v-if="routeLines" :lat-lngs="routeLines" :options="{
-        color: '#2872a7',
-        weight: 3,
-        opacity: 0.8
-      }" />
+      <!-- Rutas con diferentes colores -->
+      <l-geo-json v-for="(segment, index) in routeSegments" :key="index" :geojson="segment.geometry"
+        :options="segment.options" />
 
       <!-- Límites de Bogotá -->
       <l-geo-json :geojson="boundaries" :options="geoJsonOptions" />
@@ -55,8 +52,9 @@
 
 <script>
 
-import { LGeoJson, LMap, LTileLayer, LMarker, LPopup, LIcon, LPolyline } from '@vue-leaflet/vue-leaflet'
+import { LGeoJson, LMap, LTileLayer, LMarker, LPopup, LIcon } from '@vue-leaflet/vue-leaflet'
 import bogotaBoundariesData from '@/assets/bogota-boundaries.json'
+import { getRouteDirections } from '@/services/routeService';
 
 export default {
   name: 'MapView',
@@ -67,7 +65,6 @@ export default {
     LPopup,
     LIcon,
     LGeoJson,
-    LPolyline
   },
   props: {
     markers: {
@@ -94,6 +91,16 @@ export default {
       },
       tempMarker: null,
       routeLines: null,
+      routeGeometry: null,
+      routeSegments: null,
+      routeColors: [
+        '#2872a7',  // azul
+        '#28a745',  // verde
+        '#dc3545',  // rojo
+        '#ffc107',  // amarillo
+        '#6610f2',  // morado
+        '#fd7e14'   // naranja
+      ],
     }
   },
   methods: {
@@ -116,8 +123,51 @@ export default {
     cancelTempMarker() {
       this.tempMarker = null
     },
-    drawRoute(routePoints) {
-      this.routeLines = routePoints.map(point => point.position);
+    getRouteColor(index) {
+      return this.routeColors[index % this.routeColors.length];
+    },
+    async drawOptimizedRoute(points) {
+      try {
+        const allPoints = [{ position: this.warehousePosition }, ...points];
+        const segments = [];
+        let totalDuration = 0;
+        let totalDistance = 0;
+
+        // Crear rutas entre puntos principales
+        for (let i = 0; i < allPoints.length - 1; i++) {
+          const routeData = await getRouteDirections([allPoints[i], allPoints[i + 1]]);
+          totalDuration += routeData.duration;
+          totalDistance += parseFloat(routeData.distance);
+
+          // Creamos un Feature con toda la ruta entre dos puntos principales
+          segments.push({
+            geometry: {
+              type: 'Feature',
+              properties: {
+                routeIndex: i // Para identificar el segmento principal
+              },
+              geometry: routeData.geometry
+            },
+            options: {
+              style: () => ({
+                color: this.getRouteColor(i),
+                weight: 4,
+                opacity: 0.8,
+                lineJoin: 'round',
+                lineCap: 'round'
+              })
+            }
+          });
+        }
+        this.routeSegments = segments;
+
+        return {
+          duration: Math.round(totalDuration),
+          distance: totalDistance.toFixed(2)
+        };
+      } catch (error) {
+        console.error('Error al dibujar la ruta:', error);
+      }
     }
   }
 }
