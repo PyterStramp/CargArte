@@ -106,7 +106,7 @@ export default {
   methods: {
     validateLocation(lat, lng) {
       if (!validateCoordinates(lat, lng, bogotaBoundariesData)) {
-        this.validationError = "¡Ah, parece que tus coordenadas están más perdidas que un Travesti en un ginecólogo! 🗺️😅\n\n CargArte tiene sus fronteras bien trazadas dentro de Bogotá. ¡Pasear por fuera de la ciudad tendrá que esperar un poco más! 🌆🚫\n\n ¿Algún otro moridero de Bogotá en mente para tu pedido? 📍"
+        this.validationError = "¡Ah, parece que tus coordenadas están más perdidas que un sordo en un tiroteo! 🗺️😅\n\n CargArte tiene sus fronteras bien trazadas dentro de Bogotá. ¡Pasear por fuera de la ciudad tendrá que esperar un poco más! 🌆🚫\n\n ¿Algún otro espacio de Bogotá en mente para tu pedido? 📍"
         return false;
       }
       this.validationError = null;
