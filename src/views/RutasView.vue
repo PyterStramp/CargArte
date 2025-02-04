@@ -8,29 +8,24 @@
       <h2>Panel de Control</h2>
       <div class="warehouse-info">
         <h3>Punto de Partida (Bodega)</h3>
-        <p>{{ warehousePosition[0].toFixed(4) }}, {{ warehousePosition[1].toFixed(4) }}</p>
+        <p>
+          {{ warehousePosition[0].toFixed(4) }}, {{ warehousePosition[1].toFixed(4) }}
+        </p>
       </div>
       <div v-if="markers.length > 0">
         <h3>Puntos de Entrega</h3>
         <ul class="marker-list">
           <li v-for="(marker, index) in markers" :key="index" class="marker-item">
             <div class="marker-info">
-              Punto #{{ index + 1 }}:
-              {{ marker.position[0].toFixed(4) }},
+              Punto #{{ index + 1 }}: {{ marker.position[0].toFixed(4) }},
               {{ marker.position[1].toFixed(4) }}
             </div>
-            <div class="packages-info">
-              Paquetes: {{ marker.packages }}
-            </div>
-            <button @click="removeMarker(index)" class="delete-btn">
-              X
-            </button>
+            <div class="packages-info">Paquetes: {{ marker.packages }}</div>
+            <button @click="removeMarker(index)" class="delete-btn">X</button>
           </li>
         </ul>
       </div>
-      <p v-else>
-        Haga clic en el mapa para añadir puntos de entrega
-      </p>
+      <p v-else>Haga clic en el mapa para añadir puntos de entrega</p>
 
       <!-- Formulario de coordenadas -->
       <div class="coordinates-form">
@@ -40,21 +35,75 @@
             <div class="coordinate-inputs">
               <div class="input-wrapper">
                 <label for="latitude">Latitud</label>
-                <input id="latitude" type="number" v-model="newMarker.lat" step="any" required class="form-input">
+                <input
+                  id="latitude"
+                  type="number"
+                  v-model="newMarker.lat"
+                  step="any"
+                  required
+                  class="form-input"
+                />
               </div>
               <div class="input-wrapper">
                 <label for="longitude">Longitud</label>
-                <input id="longitude" type="number" v-model="newMarker.lng" step="any" required class="form-input">
+                <input
+                  id="longitude"
+                  type="number"
+                  v-model="newMarker.lng"
+                  step="any"
+                  required
+                  class="form-input"
+                />
               </div>
               <div class="input-wrapper package-input">
                 <label for="packages">Paquetes</label>
-                <input id="packages" type="number" v-model="newMarker.packages" min="1" required class="form-input">
+                <input
+                  id="packages"
+                  type="number"
+                  v-model="newMarker.packages"
+                  min="1"
+                  required
+                  class="form-input"
+                />
               </div>
             </div>
             <button type="submit" class="add-btn">Añadir Punto</button>
           </div>
           <div v-if="validationError" class="error-message">
             {{ validationError }}
+          </div>
+        </form>
+      </div>
+
+      <div class="coordinates-form">
+        <h3>Ingresa por dirección</h3>
+        <form @submit.prevent="addMarkerByAddress" class="form-group">
+          <div class="input-container">
+            <div class="address-input">
+              <label for="address">Dirección</label>
+              <input
+                id="address"
+                type="text"
+                v-model="newMarker.address"
+                required
+                class="form-input"
+              />
+            </div>
+            <div class="input-wrapper package-input">
+              <label for="packages">Paquetes</label>
+              <input
+                id="packages"
+                type="number"
+                v-model="newMarker.packages"
+                min="1"
+                required
+                class="form-input"
+              />
+            </div>
+            <button type="submit" class="add-btn">Añadir Punto</button>
+          </div>
+          <div v-if="validationErrorAddresses" class="error-message">
+            {{ validationErrorAddresses }}
           </div>
         </form>
       </div>
@@ -79,34 +128,36 @@
 </template>
 
 <script>
-import MapView from '@/components/MapView.vue'
-import { validateCoordinates } from '@/utils/geoValidation'
-import bogotaBoundariesData from '@/assets/bogota-boundaries.json'
-import { findOptimalRoute } from '@/utils/routeOptimization'
+import MapView from "@/components/MapView.vue";
+import { validateCoordinates } from "@/utils/geoValidation";
+import bogotaBoundariesData from "@/assets/bogota-boundaries.json";
+import { findOptimalRoute } from "@/utils/routeOptimization";
+import { MAPBOX_ACCESS_TOKEN } from '@/config/mapbox'
 
 export default {
-  name: 'RutasView',
+  name: "RutasView",
   components: {
-    MapView
+    MapView,
   },
   data() {
     return {
       markers: [],
       warehousePosition: [4.757786586246297, -74.04488664305592],
       newMarker: {
-        lat: '',
-        lng: '',
-        packages: 1
+        lat: "",
+        lng: "",
+        packages: 1,
       },
       validationError: null,
       optimizedRoute: null,
-      routeInfo: null
-    }
+      routeInfo: null,
+    };
   },
   methods: {
     validateLocation(lat, lng) {
       if (!validateCoordinates(lat, lng, bogotaBoundariesData)) {
-        this.validationError = "¡Ah, parece que tus coordenadas están más perdidas que un sordo en un tiroteo! 🗺️😅\n\n CargArte tiene sus fronteras bien trazadas dentro de Bogotá. ¡Pasear por fuera de la ciudad tendrá que esperar un poco más! 🌆🚫\n\n ¿Algún otro espacio de Bogotá en mente para tu pedido? 📍"
+        this.validationError =
+          "¡Ah, parece que tus coordenadas están más perdidas que un sordo en un tiroteo! 🗺️😅\n\n CargArte tiene sus fronteras bien trazadas dentro de Bogotá. ¡Pasear por fuera de la ciudad tendrá que esperar un poco más! 🌆🚫\n\n ¿Algún otro espacio de Bogotá en mente para tu pedido? 📍";
         return false;
       }
       this.validationError = null;
@@ -119,24 +170,61 @@ export default {
       }
     },
     removeMarker(index) {
-      this.markers.splice(index, 1)
+      this.markers.splice(index, 1);
     },
     addMarkerByCoordinates() {
-      const lat = parseFloat(this.newMarker.lat)
-      const lng = parseFloat(this.newMarker.lng)
-      const packages = parseInt(this.newMarker.packages)
+      const lat = parseFloat(this.newMarker.lat);
+      const lng = parseFloat(this.newMarker.lng);
+      const packages = parseInt(this.newMarker.packages);
 
       if (!isNaN(lat) && !isNaN(lng) && packages >= 1) {
         if (this.validateLocation(lat, lng)) {
           this.markers.push({
             position: [lat, lng],
-            packages: packages
-          })
+            packages: packages,
+          });
 
           // Limpiar el formulario
-          this.newMarker.lat = ''
-          this.newMarker.lng = ''
-          this.newMarker.packages = 1
+          this.newMarker.lat = "";
+          this.newMarker.lng = "";
+          this.newMarker.packages = 1;
+        }
+      }
+    },
+    async addMarkerByAddress() {
+      const address = this.newMarker.address;
+      const packages = parseInt(this.newMarker.packages);
+
+      if (address && packages >= 1) {
+        try {
+          // Llamar al servicio de geocodificación (ejemplo con Mapbox)
+
+          const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+              address + ", Bogotá, Colombia"
+            )}.json?` + new URLSearchParams({ access_token: MAPBOX_ACCESS_TOKEN})
+          );
+          const data = await response.json();
+
+          if (data.features && data.features.length > 0) {
+            const [lng, lat] = data.features[0].center;
+
+            if (this.validateLocation(lat, lng)) {
+              this.markers.push({
+                position: [lat, lng],
+                packages: packages,
+              });
+
+              // Limpiar el formulario
+              this.newMarker.address = "";
+              this.newMarker.packages = 1;
+            }
+          } else {
+            this.validationErrorAddresses = "No se pudo encontrar la dirección.";
+          }
+        } catch (error) {
+          console.error("Error al geocodificar la dirección:", error);
+          this.validationError = "Hubo un error al procesar la dirección.";
         }
       }
     },
@@ -151,16 +239,14 @@ export default {
         const routeData = await this.$refs.mapView.drawOptimizedRoute(optimizedRoute);
         this.routeInfo = {
           duration: routeData.duration,
-          distance: routeData.distance
+          distance: routeData.distance,
         };
       } catch (error) {
-        console.error('Error al optimizar ruta:', error);
+        console.error("Error al optimizar ruta:", error);
       }
-
-    }
-
-  }
-}
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -288,7 +374,7 @@ export default {
 .form-input:focus {
   outline: none;
   border-color: #80bdff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
 .input-container {
