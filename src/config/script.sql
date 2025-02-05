@@ -1,4 +1,12 @@
-CREATE DATABASE cargarte_db;
+CREATE DATABASE cargarte_db WITH ENCODING 'UTF8' 
+LC_COLLATE='es_CO.UTF-8' 
+LC_CTYPE='es_CO.UTF-8';
+
+--si ya se creó
+UPDATE pg_database SET datcollate='es_CO.UTF-8', datctype='es_CO.UTF-8' 
+WHERE datname='cargarte_db';
+
+SET client_encoding TO 'UTF8';
 
 CREATE TYPE route_status AS ENUM ('Pending', 'In Progress', 'Completed', 'Cancelled');
 
@@ -42,6 +50,7 @@ CREATE TABLE drivers (
 
 CREATE TABLE routes (
     id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
     driver_id INTEGER REFERENCES drivers(id) ON DELETE SET NULL,
     vehicle_id INTEGER REFERENCES vehicles(id) ON DELETE SET NULL,
     date DATE NOT NULL,
