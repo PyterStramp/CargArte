@@ -95,13 +95,13 @@ export default {
       deliveryIcon: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
       boundaries: bogotaBoundariesData,
       geoJsonOptions: {
-        style: {
+        style: () => ({
           fillColor: '#3388ff',
           weight: 2,
           opacity: 1,
           color: '#3388ff',
           fillOpacity: 0.1
-        }
+        })
       },
       tempMarker: null,
       routeLines: null,
@@ -165,11 +165,11 @@ export default {
           geometry: leg.geometry,
           properties: {},
           options: {
-            style: {
+            style: () => ({
               color: this.getRouteColor(index),
               weight: 5,
               opacity: 0.7
-            }
+            })
           }
         }));
 
@@ -181,6 +181,11 @@ export default {
         console.error('Route drawing failed:', error);
         return { duration: 0, distance: 0 };
       }
+    },
+    clearRoute() {
+      this.routeSegments = null;
+      this.routeGeometry = null;
+      this.routeLines = null;
     }
   }
 }

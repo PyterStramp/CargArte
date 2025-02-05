@@ -16,11 +16,16 @@
         <h3>Puntos de Entrega</h3>
         <ul class="marker-list">
           <li v-for="(marker, index) in markers" :key="index" class="marker-item">
-            <div class="marker-info">
-              Punto #{{ index + 1 }}: {{ marker.position[0].toFixed(4) }},
-              {{ marker.position[1].toFixed(4) }}
+            <div class="marker-details">
+              <div class="marker-info">
+                <div class="marker-title">Punto #{{ index + 1 }}</div>
+                <div class="marker-address">{{ marker.address }}</div>
+                <div class="marker-coordinates">
+                  {{ marker.position[0].toFixed(4) }}, {{ marker.position[1].toFixed(4) }}
+                </div>
+              </div>
+              <div class="packages-info">Paquetes: {{ marker.packages }}</div>
             </div>
-            <div class="packages-info">Paquetes: {{ marker.packages }}</div>
             <button @click="removeMarker(index)" class="delete-btn">X</button>
           </li>
         </ul>
@@ -35,36 +40,15 @@
             <div class="coordinate-inputs">
               <div class="input-wrapper">
                 <label for="latitude">Latitud</label>
-                <input
-                  id="latitude"
-                  type="number"
-                  v-model="newMarker.lat"
-                  step="any"
-                  required
-                  class="form-input"
-                />
+                <input id="latitude" type="number" v-model="newMarker.lat" step="any" required class="form-input" />
               </div>
               <div class="input-wrapper">
                 <label for="longitude">Longitud</label>
-                <input
-                  id="longitude"
-                  type="number"
-                  v-model="newMarker.lng"
-                  step="any"
-                  required
-                  class="form-input"
-                />
+                <input id="longitude" type="number" v-model="newMarker.lng" step="any" required class="form-input" />
               </div>
               <div class="input-wrapper package-input">
                 <label for="packages">Paquetes</label>
-                <input
-                  id="packages"
-                  type="number"
-                  v-model="newMarker.packages"
-                  min="1"
-                  required
-                  class="form-input"
-                />
+                <input id="packages" type="number" v-model="newMarker.packages" min="1" required class="form-input" />
               </div>
             </div>
             <button type="submit" class="add-btn">Añadir Punto</button>
@@ -81,36 +65,30 @@
           <div class="input-container">
             <div class="address-input">
               <label for="address">Dirección</label>
-              <input
-                id="address"
-                type="text"
-                v-model="newMarker.address"
-                required
-                class="form-input"
-              />
+              <input id="address" type="text" v-model="newMarker.address" required class="form-input" />
             </div>
             <div class="input-wrapper package-input">
               <label for="packages">Paquetes</label>
-              <input
-                id="packages"
-                type="number"
-                v-model="newMarker.packages"
-                min="1"
-                required
-                class="form-input"
-              />
+              <input id="packages" type="number" v-model="newMarker.packages" min="1" required class="form-input" />
             </div>
             <button type="submit" class="add-btn">Añadir Punto</button>
           </div>
-          <div v-if="validationErrorAddresses" class="error-message">
-            {{ validationErrorAddresses }}
+          <div v-if="validationError" class="error-message">
+            {{ validationError }}
           </div>
         </form>
       </div>
 
-      <button v-if="markers.length > 1" @click="optimizeRoute" class="optimize-btn">
-        Optimizar Ruta
-      </button>
+      <!-- Botones de optimización y guardado -->
+      <div class="actions-container">
+        <button v-if="markers.length > 1" @click="optimizeRoute" :disabled="isOptimized" class="optimize-btn">
+          {{ isOptimizing ? 'Optimizando...' : 'Optimizar Ruta' }}
+        </button>
+
+        <button v-if="isOptimized" @click="showSaveRouteModal" class="save-btn">
+          Guardar Ruta
+        </button>
+      </div>
 
       <!-- Información de la ruta -->
       <div v-if="routeInfo" class="route-info">
@@ -123,21 +101,33 @@
           <span class="info-value">{{ routeInfo.distance }} km</span>
         </div>
       </div>
+      <!-- Modal para guardar ruta -->
+      <div v-if="showModal" class="modal-overlay">
+        <div class="modal-container">
+          <div class="modal-header">
+            <h2>Guardar Ruta</h2>
+            <button @click="closeModal" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-content">
+            <RouteForm @submit="handleSaveRoute" @cancel="closeModal" />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import MapView from "@/components/MapView.vue";
-import { validateCoordinates } from "@/utils/geoValidation";
-import bogotaBoundariesData from "@/assets/bogota-boundaries.json";
 import { findOptimalRoute } from "@/utils/routeOptimization";
-import { MAPBOX_ACCESS_TOKEN } from '@/config/mapbox'
+import { getLocation } from '@/services/routeService'
+import RouteForm from '@/components/RouteForm.vue';
+import { useRouteStore } from '@/stores/routeStore';
 
 export default {
   name: "RutasView",
   components: {
-    MapView,
+    MapView, RouteForm
   },
   data() {
     return {
@@ -146,103 +136,181 @@ export default {
       newMarker: {
         lat: "",
         lng: "",
+        address: "",
         packages: 1,
       },
       validationError: null,
       optimizedRoute: null,
       routeInfo: null,
+      isOptimizing: false,
+      isOptimized: false,
+      showModal: false,
+      isSaving: false
     };
   },
+  setup() {
+    const routeStore = useRouteStore(); // Inicializar el store
+    return { routeStore };
+  },
   methods: {
-    validateLocation(lat, lng) {
-      if (!validateCoordinates(lat, lng, bogotaBoundariesData)) {
-        this.validationError =
-          "¡Ah, parece que tus coordenadas están más perdidas que un sordo en un tiroteo! 🗺️😅\n\n CargArte tiene sus fronteras bien trazadas dentro de Bogotá. ¡Pasear por fuera de la ciudad tendrá que esperar un poco más! 🌆🚫\n\n ¿Algún otro espacio de Bogotá en mente para tu pedido? 📍";
-        return false;
+
+    async handleMarkerAdded(marker) {
+      try {
+        const locationData = await getLocation({
+          latlng: { lat: marker.position[0], lng: marker.position[1] }
+        });
+
+        if (locationData.isValid) {
+          this.markers.push({
+            position: locationData.coordinates,
+            address: locationData.address,
+            packages: marker.packages || 1,
+          });
+        } else {
+          this.validationError = locationData.error;
+        }
+      } catch (error) {
+        console.error("Error al procesar ubicación:", error);
+        this.validationError = "Error al procesar la ubicación";
       }
-      this.validationError = null;
-      return true;
     },
-    handleMarkerAdded(marker) {
-      const [lat, lng] = marker.position;
-      if (this.validateLocation(lat, lng)) {
-        this.markers.push(marker);
-      }
-    },
-    removeMarker(index) {
-      this.markers.splice(index, 1);
-    },
-    addMarkerByCoordinates() {
+
+    async addMarkerByCoordinates() {
       const lat = parseFloat(this.newMarker.lat);
       const lng = parseFloat(this.newMarker.lng);
       const packages = parseInt(this.newMarker.packages);
 
       if (!isNaN(lat) && !isNaN(lng) && packages >= 1) {
-        if (this.validateLocation(lat, lng)) {
-          this.markers.push({
-            position: [lat, lng],
-            packages: packages,
-          });
+        try {
+          const locationData = await getLocation({ lat, lng });
 
-          // Limpiar el formulario
-          this.newMarker.lat = "";
-          this.newMarker.lng = "";
-          this.newMarker.packages = 1;
+          if (locationData.isValid) {
+            this.markers.push({
+              position: locationData.coordinates,
+              address: locationData.address,
+              packages: packages,
+            });
+
+            // Limpiar el formulario
+            this.newMarker.lat = "";
+            this.newMarker.lng = "";
+            this.newMarker.packages = 1;
+            this.validationError = null;
+          } else {
+            this.validationError = locationData.error;
+          }
+        } catch (error) {
+          console.error("Error al procesar coordenadas:", error);
+          this.validationError = "Error al procesar las coordenadas";
         }
       }
     },
+
     async addMarkerByAddress() {
       const address = this.newMarker.address;
       const packages = parseInt(this.newMarker.packages);
 
       if (address && packages >= 1) {
         try {
-          // Llamar al servicio de geocodificación (ejemplo con Mapbox)
+          const locationData = await getLocation(address);
 
-          const response = await fetch(
-            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-              address + ", Bogotá, Colombia"
-            )}.json?` + new URLSearchParams({ access_token: MAPBOX_ACCESS_TOKEN})
-          );
-          const data = await response.json();
+          if (locationData.isValid) {
+            this.markers.push({
+              position: locationData.coordinates,
+              address: locationData.address,
+              packages: packages,
+            });
 
-          if (data.features && data.features.length > 0) {
-            const [lng, lat] = data.features[0].center;
-
-            if (this.validateLocation(lat, lng)) {
-              this.markers.push({
-                position: [lat, lng],
-                packages: packages,
-              });
-
-              // Limpiar el formulario
-              this.newMarker.address = "";
-              this.newMarker.packages = 1;
-            }
+            // Limpiar el formulario
+            this.newMarker.address = "";
+            this.newMarker.packages = 1;
+            this.validationError = null;
           } else {
-            this.validationErrorAddresses = "No se pudo encontrar la dirección.";
+            this.validationError = locationData.error;
           }
         } catch (error) {
-          console.error("Error al geocodificar la dirección:", error);
-          this.validationError = "Hubo un error al procesar la dirección.";
+          console.error("Error al procesar dirección:", error);
+          this.validationError = "Error al procesar la dirección";
         }
       }
     },
+
+    removeMarker(index) {
+      this.markers.splice(index, 1);
+    },
+
     async optimizeRoute() {
       try {
-        // Obtener ruta optimizada
+        this.isOptimizing = true;
         const optimizedRoute = findOptimalRoute(
           { position: this.warehousePosition },
           this.markers
         );
-        // Dibujar ruta en el mapa usando Mapbox
         const routeData = await this.$refs.mapView.drawOptimizedRoute(optimizedRoute);
         this.routeInfo = {
           duration: routeData.duration,
           distance: routeData.distance,
         };
+        this.isOptimized = true;
       } catch (error) {
         console.error("Error al optimizar ruta:", error);
+        this.validationError = "Error al optimizar la ruta";
+      } finally {
+        this.isOptimizing = false;
+      }
+    },
+
+    showSaveRouteModal() {
+      this.showModal = true;
+    },
+
+    closeModal() {
+      this.showModal = false;
+    },
+
+    async handleSaveRoute(formData) {
+      try {
+        this.isSaving = true;
+
+        // Preparar los datos de la ruta
+        const routeData = {
+          name: formData.name,
+          driverId: formData.driverId,
+          vehicleId: formData.vehicleId,
+          date: formData.date,
+          // Incluir información de duración y distancia
+          duration: this.routeInfo?.duration,
+          distance: this.routeInfo?.distance
+        };
+
+        // Guardar la ruta y sus puntos
+        const result = await this.routeStore.saveRoute(routeData, this.markers);
+
+        if (result.success) {
+          // Mostrar mensaje de éxito
+          alert('Ruta guardada correctamente');
+
+          // Cerrar modal y limpiar estado
+          this.closeModal();
+          this.clearRoute();
+        }
+      } catch (error) {
+        console.error('Error al guardar la ruta:', error);
+        // Mostrar alerta de error
+        alert('Error al guardar la ruta: ' + error.message);
+      } finally {
+        this.isSaving = false;
+      }
+    },
+
+    clearRoute() {
+      // Limpiar el estado después de guardar
+      this.markers = [];
+      this.routeInfo = null;
+      this.isOptimized = false;
+      this.optimizedRoute = null;
+      if (this.$refs.mapView) {
+        this.$refs.mapView.clearRoute();
       }
     },
   },
@@ -305,7 +373,6 @@ export default {
 }
 
 .marker-list li {
-  padding: 8px 0;
   border-bottom: 1px solid #eee;
 }
 
@@ -516,5 +583,113 @@ label {
 .info-value {
   margin-left: 8px;
   color: #2872a7;
+}
+
+/*new */
+.marker-details {
+  flex: 1;
+}
+
+.marker-title {
+  font-weight: bold;
+  color: #2872a7;
+  margin-bottom: 4px;
+}
+
+.marker-address {
+  font-size: 0.9em;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.marker-coordinates {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.marker-item {
+  background-color: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  padding: 12px;
+}
+
+.marker-item:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.actions-container {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.save-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.save-btn:hover {
+  background-color: #218838;
+}
+
+/* Estilos del modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modal-content {
+  padding: 1rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #6c757d;
+}
+
+.close-btn:hover {
+  color: #343a40;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
