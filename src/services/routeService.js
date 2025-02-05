@@ -125,7 +125,7 @@ function processLegGeometry(leg) {
 export async function getRouteDirections(points) {
   // Formatear los puntos para la API de Mapbox
   const coordinates = points.map((point) => `${point[0]},${point[1]}`).join(';')
-
+  console.log(coordinates)
   try {
     const response = await fetch(
       `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?` +

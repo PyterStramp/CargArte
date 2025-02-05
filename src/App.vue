@@ -3,6 +3,7 @@
     <nav>
       <router-link to="/">Inicio</router-link> |
       <router-link to="/rutas">Gestión de Rutas</router-link> |
+      <router-link to="/rutas-list">Lista de Rutas</router-link> |
       <router-link to="/vehicles">Vehículos</router-link>
     </nav>
     <router-view></router-view>

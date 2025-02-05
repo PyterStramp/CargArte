@@ -6,8 +6,10 @@ import { createRoute } from '@/services/routeService';
 
 export const useRouteStore = defineStore('route', {
   state: () => ({
+    aviableRoutes: [],
     availableDrivers: [],
     availableVehicles: [],
+    deliveryPoints: [],
     selectedDate: null,
     isLoading: false,
     error: null
@@ -66,7 +68,36 @@ export const useRouteStore = defineStore('route', {
         throw error;
       }
     },
-
+    async fetchRoutes() {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/routes`);
+        this.aviableRoutes = response.data.data;
+      } catch (error) {
+        this.error = 'Error el obtener rutas';
+        throw error;
+      }
+    },
+    async fetchDeliveryPoints(id) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/routes/${id}`);
+        this.deliveryPoints = response.data.data;
+      } catch (error) {
+        this.error = 'Error el obtener los puntos de entrega';
+        throw error;
+      }
+    },
+    async deleteRoute(routeId) {
+      try {
+        const response = await axios.delete(`${API_BASE_URL}/api/routes/${routeId}`);
+        console.log("Ruta eliminada:", response.data);
+    
+        // Remover la ruta de la lista en Vue
+        this.aviableRoutes = this.aviableRoutes.filter(route => route.id !== routeId);
+      } catch (error) {
+        console.error("Error al eliminar la ruta:", error);
+      }
+    }
+    ,
     async saveRoute(routeData, deliveryPoints) {
       try {
         const formattedRouteData = {
@@ -79,7 +110,7 @@ export const useRouteStore = defineStore('route', {
         };
 
         const result = await createRoute(formattedRouteData);
-
+        
         if (result.success) {
           return { success: true, routeId: result.routeId };
         }
