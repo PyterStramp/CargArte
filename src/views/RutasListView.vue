@@ -31,6 +31,15 @@
           </li>
         </ul>
       </div>
+
+      <!-- Formulario de búsqueda -->
+      <div v-if="isOptimized=false" class="filter-container">
+        <input v-model="searchVehicle" placeholder="Buscar por placa" />
+        <input v-model="searchDriver" placeholder="Buscar por conductor" />
+        <input v-model="searchDate" type="date" />
+        <button @click="applyFilters">Buscar</button>
+      </div>
+
       <!-- Tabla de vehículos -->
       <div v-if="isTableVisible" class="routes-table">
         <table>
@@ -74,6 +83,9 @@
           <span class="info-value">{{ routeInfo.distance }} km</span>
         </div>
       </div>
+      <button v-if="markers.length > 1" @click="handleReverse" class="optimize-btn">
+        Regresar
+      </button>
       <!-- Modal para guardar ruta -->
       <div v-if="showModal" class="modal-overlay">
         <div class="modal-container">
@@ -91,11 +103,16 @@
 </template>
 
 <script>
+import {ref} from 'vue'
 import MapView from "@/components/MapView.vue";
 import { findOptimalRoute } from "@/utils/routeOptimization";
 import { getLocation } from "@/services/routeService";
 import RouteForm from "@/components/RouteForm.vue";
 import { useRouteStore } from "@/stores/routeStore";
+
+const searchVehicle = ref("");
+const searchDriver = ref("");
+const searchDate = ref("");
 
 export default {
   name: "RutasListView",
@@ -149,7 +166,13 @@ export default {
         this.validationError = "Error al procesar la ubicación";
       }
     },
-
+    async applyFilters(){
+      this.routeStore.fetchRoutes({
+        vehicle: searchVehicle.value || undefined,
+        driver: searchDriver.value || undefined,
+        date: searchDate.value || undefined,
+      });
+    },
     async addMarkerByCoordinates(lat1, lng1, pack) {
       const lat = parseFloat(lat1);
       const lng = parseFloat(lng1);
@@ -176,20 +199,31 @@ export default {
         }
       }
     },
+    async handleReverse(){
+      this.clearRoute()
+      this.routeStore.fetchRoutes()
+    },
     async viewRoute(id) {
       try {
-        this.clearRoute()
-        this.routeStore.fetchDeliveryPoints(id);
-        this.routeStore.deliveryPoints['delivery_points'].map((point) => {
-          this.addMarkerByCoordinates(point['latitude'], point['longitude'], point['packages_count']);
-        });
+        this.clearRoute();
+
+        // Esperar a que los puntos de entrega se carguen
+        await this.routeStore.fetchDeliveryPoints(id);
+
+        // Ahora los datos deberían estar disponibles
+        if (this.routeStore.deliveryPoints && this.routeStore.deliveryPoints['delivery_points']) {
+          this.routeStore.deliveryPoints['delivery_points'].forEach((point) => {
+            this.addMarkerByCoordinates(point['latitude'], point['longitude'], point['packages_count']);
+          });
+        } else {
+          console.warn("No hay puntos de entrega disponibles.");
+        }
+
         this.isTableVisible = false;
       } catch (error) {
         console.error("Error:", error);
       }
-    }
-    ,
-
+    },
     removeMarker(index) {
       this.markers.splice(index, 1);
     },
@@ -230,41 +264,6 @@ export default {
 
     closeModal() {
       this.showModal = false;
-    },
-
-    async handleSaveRoute(formData) {
-      try {
-        this.isSaving = true;
-
-        // Preparar los datos de la ruta
-        const routeData = {
-          name: formData.name,
-          driverId: formData.driverId,
-          routeId: formData.routeId,
-          date: formData.date,
-          // Incluir información de duración y distancia
-          duration: this.routeInfo?.duration,
-          distance: this.routeInfo?.distance,
-        };
-
-        // Guardar la ruta y sus puntos
-        const result = await this.routeStore.saveRoute(routeData, this.markers);
-
-        if (result.success) {
-          // Mostrar mensaje de éxito
-          alert("Ruta guardada correctamente");
-
-          // Cerrar modal y limpiar estado
-          this.closeModal();
-          this.clearRoute();
-        }
-      } catch (error) {
-        console.error("Error al guardar la ruta:", error);
-        // Mostrar alerta de error
-        alert("Error al guardar la ruta: " + error.message);
-      } finally {
-        this.isSaving = false;
-      }
     },
 
     clearRoute() {
@@ -659,12 +658,14 @@ button:disabled {
 
 .routes-table {
   width: 100%;
-  max-width: 600px; /* Ajusta el ancho según el espacio disponible */
+  max-width: 600px;
+  /* Ajusta el ancho según el espacio disponible */
   background-color: #f9f9f9;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  margin-right: 10px; /* Espacio entre la tabla y el mapa */
+  margin-right: 10px;
+  /* Espacio entre la tabla y el mapa */
 }
 
 .routes-table table {
@@ -719,4 +720,9 @@ button:disabled {
   background-color: #c82333;
 }
 
+.filter-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
 </style>

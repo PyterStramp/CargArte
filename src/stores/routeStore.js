@@ -68,13 +68,13 @@ export const useRouteStore = defineStore('route', {
         throw error;
       }
     },
-    async fetchRoutes() {
+    async fetchRoutes(filters = {}) {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/routes`);
+        const response = await axios.get(`${API_BASE_URL}/api/routes`, { params: filters });
         this.aviableRoutes = response.data.data;
       } catch (error) {
-        this.error = 'Error el obtener rutas';
-        throw error;
+        this.error = "Error al obtener rutas";
+        console.error(error);
       }
     },
     async fetchDeliveryPoints(id) {
