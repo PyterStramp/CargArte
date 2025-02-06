@@ -4,7 +4,8 @@
       <router-link to="/">Inicio</router-link> |
       <router-link to="/rutas">Gestión de Rutas</router-link> |
       <router-link to="/rutas-list">Lista de Rutas</router-link> |
-      <router-link to="/vehicles">Vehículos</router-link>
+      <router-link to="/vehicles">Vehículos</router-link> |
+      <router-link to="/drivers">Conductores</router-link>
     </nav>
     <router-view></router-view>
   </div>
