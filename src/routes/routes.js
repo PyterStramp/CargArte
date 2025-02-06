@@ -97,30 +97,63 @@ router.post('/:id/delivery-points', async (req, res, next) => {
 });
 
 // GET /api/routes - Obtener todas las rutas
-router.get('/', async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    const result = await pool.query(
-      `SELECT r.*, 
-          d.first_name || ' ' || d.last_name as driver_name,
-          v.plate as vehicle_plate
-         FROM routes r
-         LEFT JOIN drivers d ON r.driver_id = d.id
-         LEFT JOIN vehicles v ON r.vehicle_id = v.id
-         ORDER BY r.date DESC`
-    );
-    const formatoFecha = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", year: "numeric" });
-    const formattedRoutes = result.rows.map(row => ({
+    const { vehicle, driver, date } = req.query; // Recibe filtros desde la URL
+
+    let query = `
+      SELECT r.*, 
+             d.first_name || ' ' || d.last_name AS driver_name,
+             v.plate AS vehicle_plate
+      FROM routes r
+      LEFT JOIN drivers d ON r.driver_id = d.id
+      LEFT JOIN vehicles v ON r.vehicle_id = v.id
+    `;
+    
+    let conditions = [];
+    let values = [];
+
+    if (vehicle) {
+      conditions.push(`v.plate ILIKE $${values.length + 1}`);
+      values.push(`%${vehicle}%`);
+    }
+    if (driver) {
+      conditions.push(`(d.first_name ILIKE $${values.length + 1} OR d.last_name ILIKE $${values.length + 1})`);
+      values.push(`%${driver}%`);
+    }
+    if (date) {
+      conditions.push(`r.date::date = $${values.length + 1}`);
+      values.push(date);
+    }
+
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
+    }
+
+    query += " ORDER BY r.date DESC";
+
+    const result = await pool.query(query, values);
+
+    const formatoFecha = new Intl.DateTimeFormat("es-ES", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+    const formattedRoutes = result.rows.map((row) => ({
       ...row,
-      date: formatoFecha.format(new Date(row.date)) // Formatea la fecha
+      date: formatoFecha.format(new Date(row.date)),
     }));
+
     res.json({
       success: true,
-      data: formattedRoutes
+      data: formattedRoutes,
     });
   } catch (error) {
     next(error);
   }
 });
+
 
 // GET /api/routes/:id - Obtener detalles de una ruta
 router.get('/:id', async (req, res, next) => {
