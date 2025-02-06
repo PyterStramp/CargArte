@@ -6,7 +6,7 @@
     </div>
     <div class="controls-section">
       <h2>Listado de rutas</h2>
-      <div class="warehouse-info">
+      <div v-if="markers.length > 0" class="warehouse-info">
         <h3>Punto de Partida (Bodega)</h3>
         <p>
           {{ warehousePosition[0].toFixed(4) }}, {{ warehousePosition[1].toFixed(4) }}
@@ -33,12 +33,18 @@
       </div>
 
       <!-- Formulario de búsqueda -->
-      <div v-if="isOptimized=false" class="filter-container">
-        <input v-model="searchVehicle" placeholder="Buscar por placa" />
-        <input v-model="searchDriver" placeholder="Buscar por conductor" />
-        <input v-model="searchDate" type="date" />
-        <button @click="applyFilters">Buscar</button>
+      <div v-if="isTableVisible" class="filter-container">
+        <div class="inputs-row">
+          <input v-model="this.newFilter.plate" placeholder="Buscar por placa" class="input-style" />
+          <input v-model="this.newFilter.driver" placeholder="Buscar por conductor" class="input-style" />
+          <input v-model="this.newFilter.date" type="date" class="input-style" />
+        </div>
+        <button @click="applyFilters" class="btn-style">Buscar</button>
+        <button @click="clearFilters" class="btn-style">Limpiar</button>
       </div>
+
+
+
 
       <!-- Tabla de vehículos -->
       <div v-if="isTableVisible" class="routes-table">
@@ -103,16 +109,11 @@
 </template>
 
 <script>
-import {ref} from 'vue'
 import MapView from "@/components/MapView.vue";
 import { findOptimalRoute } from "@/utils/routeOptimization";
 import { getLocation } from "@/services/routeService";
 import RouteForm from "@/components/RouteForm.vue";
 import { useRouteStore } from "@/stores/routeStore";
-
-const searchVehicle = ref("");
-const searchDriver = ref("");
-const searchDate = ref("");
 
 export default {
   name: "RutasListView",
@@ -129,6 +130,11 @@ export default {
         lng: "",
         address: "",
         packages: 1,
+      },
+      newFilter:{
+        plate: '',
+        driver: '',
+        date: '',
       },
       validationError: null,
       optimizedRoute: null,
@@ -166,12 +172,19 @@ export default {
         this.validationError = "Error al procesar la ubicación";
       }
     },
-    async applyFilters(){
+    async applyFilters() {
       this.routeStore.fetchRoutes({
-        vehicle: searchVehicle.value || undefined,
-        driver: searchDriver.value || undefined,
-        date: searchDate.value || undefined,
+        vehicle: this.newFilter.plate || undefined,
+        driver: this.newFilter.plate || undefined,
+        date: this.newFilter.date || undefined,
       });
+      console.log('si sirve', this.newFilter.driver || undefined)
+    },
+    async clearFilters(){
+      this.newFilter.plate = ''
+      this.newFilter.driver = ''
+      this.newFilter.date = ''
+      this.applyFilters()
     },
     async addMarkerByCoordinates(lat1, lng1, pack) {
       const lat = parseFloat(lat1);
@@ -199,9 +212,9 @@ export default {
         }
       }
     },
-    async handleReverse(){
+    async handleReverse() {
       this.clearRoute()
-      this.routeStore.fetchRoutes()
+      this.isTableVisible = true;
     },
     async viewRoute(id) {
       try {
@@ -215,6 +228,7 @@ export default {
           this.routeStore.deliveryPoints['delivery_points'].forEach((point) => {
             this.addMarkerByCoordinates(point['latitude'], point['longitude'], point['packages_count']);
           });
+
         } else {
           console.warn("No hay puntos de entrega disponibles.");
         }
@@ -297,19 +311,16 @@ export default {
 }
 
 .controls-section {
-  flex: 1;
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  /*Scroll */
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
-  /* Opcional: para hacer el scroll más suave */
-  scroll-behavior: smooth;
-  /* Opcional: para ocultar el scroll en algunos navegadores */
-  scrollbar-width: thin;
+  flex: 1.5;
+  /* Ajusta el tamaño relativo */
+  min-width: 400px;
+  /* Asegura un ancho mínimo */
+  max-width: 600px;
+  /* Limita el ancho máximo si es necesario */
+  overflow: auto;
+  /* Permite el desplazamiento si la tabla es muy grande */
 }
+
 
 /* (Webkit browsers) */
 .controls-section::-webkit-scrollbar {
@@ -670,10 +681,10 @@ button:disabled {
 
 .routes-table table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-  text-align: left;
+  table-layout: fixed;
+  /* Evita que se desborde */
 }
+
 
 .routes-table th,
 .routes-table td {
@@ -722,7 +733,44 @@ button:disabled {
 
 .filter-container {
   display: flex;
+  flex-direction: column;
+  /* Alinea los inputs en columna */
   gap: 10px;
   margin-bottom: 15px;
+  padding: 10px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.inputs-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  /* Para que los inputs se acomoden bien en pantallas pequeñas */
+}
+
+.input-style {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  flex: 1;
+  /* Hace que los inputs ocupen el espacio disponible */
+}
+
+.btn-style {
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  align-self: center;
+  /* Centra el botón debajo de los inputs */
+}
+
+.btn-style:hover {
+  background-color: #0056b3;
 }
 </style>
