@@ -22,8 +22,8 @@
             <th>Nombre</th>
             <th>Apellido</th>
             <th>Telefono</th>
-            <th># de Licencia</th>
             <th>Email</th>
+            <th># de Licencia</th>
             <th>Acciones</th>
           </tr>
         </thead>
