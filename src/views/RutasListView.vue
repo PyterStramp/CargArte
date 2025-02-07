@@ -175,7 +175,7 @@ export default {
     async applyFilters() {
       this.routeStore.fetchRoutes({
         vehicle: this.newFilter.plate || undefined,
-        driver: this.newFilter.plate || undefined,
+        driver: this.newFilter.driver || undefined,
         date: this.newFilter.date || undefined,
       });
       console.log('si sirve', this.newFilter.driver || undefined)
